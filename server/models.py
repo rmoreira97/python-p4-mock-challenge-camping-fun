@@ -24,10 +24,15 @@ class Activity(db.Model, SerializerMixin):
     name = db.Column(db.String)
     difficulty = db.Column(db.Integer)
 
-    # Add relationship
+    signups = db.relationship('Signup', backref='activity', cascade='all, delete-orphan')
     
-    # Add serialization rules
-    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "difficulty": self.difficulty
+        }
+
     def __repr__(self):
         return f'<Activity {self.id}: {self.name}>'
 
@@ -39,13 +44,27 @@ class Camper(db.Model, SerializerMixin):
     name = db.Column(db.String, nullable=False)
     age = db.Column(db.Integer)
 
-    # Add relationship
+    signups = db.relationship('Signup', backref='camper', cascade='all, delete-orphan')
+
+    @validates('name')
+    def validate_name(self, key, name):
+        if not name:
+            raise  ValueError('Name is required')
+        return name
+
+    @validates('age')
+    def validate_age(self, key, age):
+        if age < 8 or age > 18:
+            raise ValueError('Age must be between 8 and 18')
+        return age
     
-    # Add serialization rules
-    
-    # Add validation
-    
-    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "age": self.age
+        }
+
     def __repr__(self):
         return f'<Camper {self.id}: {self.name}>'
 
@@ -55,15 +74,24 @@ class Signup(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     time = db.Column(db.Integer)
+    camper_id = db.Column(db.Integer, db.ForeignKey('campers.id'))
+    activity_id = db.Column(db.Integer, db.ForeignKey('activities.id'))
 
-    # Add relationships
+    @validates('time')
+    def validate_time(self, key, time):
+        if time < 0 or time > 23:
+            raise ValueError('Time must be between 0 and 23')
+        return time
     
-    # Add serialization rules
-    
-    # Add validation
-    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "time": self.time,
+            "camper_id": self.camper_id,
+            "activity_id": self.activity_id,
+            "camper": self.camper.to_dict() if self.camper else None,
+            "activity": self.activity.to_dict() if self.activity else None
+        }
+
     def __repr__(self):
         return f'<Signup {self.id}>'
-
-
-# add any models you may need.
